@@ -12,10 +12,10 @@ export interface HudState {
 export function createHud(onChange: () => void, onClear: () => void): HudState {
   const hud = document.getElementById('hud')!;
   const state: HudState = {
-    brushMode: BrushMode.Fuel,
+    brushMode: BrushMode.Fire,
     vizMode: VizMode.Beauty,
-    brushRadius: 12,
-    brushStrength: 1,
+    brushRadius: 16,
+    brushStrength: 1.5,
     paused: false,
     onClear,
   };
@@ -23,10 +23,11 @@ export function createHud(onChange: () => void, onClear: () => void): HudState {
   hud.innerHTML = `
     <div class="hud-panel">
       <div class="hud-title">ember-sim</div>
-      <div class="hud-help">Build a sealed room, burn until dark, vent to flash</div>
+      <div class="hud-help">Campfire starts lit. Use Beauty viz. Drag Fire to paint more.</div>
       <div class="hud-row">
         <span class="label">Brush</span>
-        <button data-mode="1" class="active">Fuel</button>
+        <button data-mode="7" class="active">Fire</button>
+        <button data-mode="1">Fuel</button>
         <button data-mode="2">Heat</button>
         <button data-mode="3">Wall</button>
         <button data-mode="5">Vent</button>
@@ -41,12 +42,12 @@ export function createHud(onChange: () => void, onClear: () => void): HudState {
         <button data-viz="3">Fuel</button>
       </div>
       <div class="hud-row">
-        <label>Radius <input type="range" id="radius" min="2" max="40" value="12"></label>
-        <label>Strength <input type="range" id="strength" min="0.2" max="3" step="0.1" value="1"></label>
+        <label>Radius <input type="range" id="radius" min="2" max="40" value="16"></label>
+        <label>Strength <input type="range" id="strength" min="0.2" max="3" step="0.1" value="1.5"></label>
       </div>
       <div class="hud-row">
         <button id="pause">Pause</button>
-        <button id="clear">Clear</button>
+        <button id="clear">Reset fire</button>
       </div>
     </div>
   `;

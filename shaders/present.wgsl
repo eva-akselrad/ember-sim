@@ -8,11 +8,11 @@ struct VSOut {
 
 @vertex
 fn vs(@builtin(vertex_index) vi: u32) -> VSOut {
-  let x = f32((vi & 1u) << 1u);
-  let y = f32((vi & 2u));
+  // Fullscreen triangle: UV (0,0) = top-left of texture matches top-left of screen
+  let uv = vec2f(f32((vi << 1u) & 2u), f32(vi & 2u));
   var out: VSOut;
-  out.pos = vec4f(x * 2.0 - 1.0, 1.0 - y * 2.0, 0.0, 1.0);
-  out.uv = vec2f(x, 1.0 - y);
+  out.pos = vec4f(uv * vec2f(2.0, -2.0) + vec2f(-1.0, 1.0), 0.0, 1.0);
+  out.uv = uv;
   return out;
 }
 

@@ -1,4 +1,4 @@
-const GRID: i32 = 512;
+const GRID: i32 = 256;
 
 struct Uniforms {
   dt: f32,
@@ -42,7 +42,7 @@ fn idx(x: i32, y: i32) -> u32 {
   return u32(yy * GRID + xx);
 }
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let x = i32(gid.x);
   let y = i32(gid.y);

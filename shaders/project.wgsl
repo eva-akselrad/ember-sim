@@ -1,4 +1,4 @@
-const GRID: i32 = 512;
+const GRID: i32 = 256;
 
 struct Uniforms {
   dt: f32,
@@ -47,7 +47,7 @@ fn p_at(x: i32, y: i32, cx: i32, cy: i32) -> f32 {
   return pressure[idx(x, y)];
 }
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let x = i32(gid.x);
   let y = i32(gid.y);
@@ -67,5 +67,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var v = vel[i];
   v.x -= 0.5 * (pR - pL);
   v.y -= 0.5 * (pU - pD);
+  let vmax = 5.0;
+  v = clamp(v, vec2f(-vmax), vec2f(vmax));
   vel[i] = v;
 }

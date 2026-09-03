@@ -1,4 +1,4 @@
-const GRID: i32 = 512;
+const GRID: i32 = 256;
 
 struct Uniforms {
   dt: f32,
@@ -51,7 +51,7 @@ fn blackbody(t: f32) -> vec3f {
   return vec3f(r, g * 0.7, b * 0.3);
 }
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let x = i32(gid.x);
   let y = i32(gid.y);
@@ -62,7 +62,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   var color = vec3f(0.02, 0.02, 0.04);
 
   if (wall) {
-    color = vec3f(0.15);
+    color = vec3f(0.5, 0.42, 0.35);
   } else {
     let viz = i32(u.vizMode);
     if (viz == 1) {

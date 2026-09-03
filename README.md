@@ -1,11 +1,24 @@
 # ember-sim
 
+> **⚠️ Project retired — unfinished work in progress**
+>
+> This repository is **not maintained** and was **never completed**. The simulation is experimental and currently **broken** in the browser (rendering / GPU pipeline issues, brush painting instability, and incomplete perf refactors).
+>
+> The initial commit runs a basic WebGPU fire sandbox with oxygen-driven combustion. Later local changes (256×256 grid, CPU brush painting, combined compute passes) were not finished or verified. **Do not expect this to work out of the box.**
+>
+> Forks and PRs are welcome if you want to pick it up, but there is no active development planned.
+
+---
+
 GPU fire simulation in the browser (WebGPU). Oxygen concentration drives combustion — starve a sealed room and vent it for a backdraft-like flash.
 
 ## Requirements
 
-- Chrome or Edge with WebGPU enabled
-- Node.js 18+
+- A browser with **WebGPU** support:
+  - **Chrome / Edge** — recent versions (WebGPU enabled by default)
+  - **Firefox 141+ on Windows** — WebGPU enabled by default
+  - **Firefox on macOS / Linux** — enable in `about:config`: set `dom.webgpu.enabled` to `true` (restart Firefox). If blocked, also set `gfx.webgpu.ignore-blocklist` to `true`.
+- Node.js 18+ (for development only)
 
 ## Run
 
@@ -20,6 +33,7 @@ Open the URL shown (usually http://localhost:5173).
 
 | Brush | Action |
 |-------|--------|
+| **Fire** | Paint fuel + heat + smoke (default) |
 | **Fuel** | Paint combustible material |
 | **Heat** | Ignite / add temperature |
 | **Wall** | Draw solid barriers (blocks flow & O₂) |
@@ -29,7 +43,7 @@ Open the URL shown (usually http://localhost:5173).
 
 **Viz modes:** Beauty, Oxygen, Temperature, Fuel
 
-## Backdraft demo
+## Backdraft demo (intended — not reliably working)
 
 1. Select **Wall**, draw a closed rectangle (no gaps).
 2. Select **Fuel**, fill the floor heavily inside.
@@ -38,14 +52,20 @@ Open the URL shown (usually http://localhost:5173).
 5. Switch back to **Beauty**. Optionally add a bit more heat so the room stays hot.
 6. Select **Vent**, poke a hole on one wall.
 7. Observe oxygen-rich air enter and a **flash / jet** out the vent.
-8. If weak: increase brush fuel, raise `EXPANSION` / `HEAT_RELEASE` in `src/sim/constants.ts`.
 
-## Architecture
+## Architecture (intended)
 
-- 512×512 Eulerian grid on WebGPU storage buffers
+- Eulerian grid fluid sim on WebGPU storage buffers
 - Stam-style stable fluids (advect → pressure project)
 - Combustion gated by fuel + temperature + **oxygen**
 - `divSource` from combustion creates expansion pressure (backdraft punch)
+
+## Known unfinished issues
+
+- Simulation display can go black or only update while interacting
+- GPU brush splat was replaced with CPU painting; sync is fragile
+- Pressure solve / bind-group ping-pong was refactored but not stabilized
+- Grid size and shader constants may be out of sync across passes
 
 ## Build
 

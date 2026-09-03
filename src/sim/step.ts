@@ -1,5 +1,17 @@
 import { DISPATCH, SIM } from './constants';
 import type { SimFields } from './fields';
+import {
+  buildAdvectScalars,
+  buildAdvectVel,
+  buildBlit,
+  buildBoundaries,
+  buildCombustion,
+  buildDissipate,
+  buildDivergence,
+  buildForces,
+  buildJacobi,
+  buildProject,
+} from './frameBindGroups';
 import type { SimPipelines } from './pipelines';
 import { packUniforms, type SimUniformData } from '../gpu/types';
 
@@ -23,85 +35,32 @@ export function encodeSimFrame(
 
   const encoder = device.createCommandEncoder();
   const compute = encoder.beginComputePass();
+  const u = pipelines.uniformBindGroup;
 
-  // 1. Brush splat
-  if (uniforms.brushActive > 0.5) {
-    dispatch(compute, pipelines.splat, [
-      pipelines.uniformBindGroup,
-      pipelines.createSplatBindGroup(fields),
-    ]);
-  }
-
-  // 2. Forces (buoyancy)
-  const [forcesG1, forcesG2] = pipelines.createForcesBindGroups(fields);
-  dispatch(compute, pipelines.forces, [pipelines.uniformBindGroup, forcesG1, forcesG2]);
-
-  // 3. Advect velocity
-  const [advVelG1, advVelG2] = pipelines.createAdvectVelBindGroups(fields);
-  dispatch(compute, pipelines.advectVel, [pipelines.uniformBindGroup, advVelG1, advVelG2]);
+  dispatch(compute, pipelines.forces, [u, ...buildForces(pipelines, fields)]);
+  dispatch(compute, pipelines.advectVel, [u, ...buildAdvectVel(pipelines, fields)]);
   fields.vel.swap();
 
-  // 4. Divergence (uses divSource from previous frame combustion)
-  const [divG1, divG2] = pipelines.createDivergenceBindGroups(fields);
-  dispatch(compute, pipelines.divergence, [pipelines.uniformBindGroup, divG1, divG2]);
-
-  // 5. Jacobi pressure solve
+  dispatch(compute, pipelines.divergence, [u, ...buildDivergence(pipelines, fields)]);
   for (let i = 0; i < SIM.JACOBI_ITERS; i++) {
-    const [jacG1, jacG2] = pipelines.createJacobiBindGroups(fields);
-    dispatch(compute, pipelines.jacobi, [pipelines.uniformBindGroup, jacG1, jacG2]);
+    dispatch(compute, pipelines.jacobi, [u, ...buildJacobi(pipelines, fields)]);
     fields.pressure.swap();
   }
 
-  // 6. Project velocity
-  const [projG1, projG2] = pipelines.createProjectBindGroups(fields);
-  dispatch(compute, pipelines.project, [pipelines.uniformBindGroup, projG1, projG2]);
-
-  // 7. Advect scalars
-  const advectScalar = (read: GPUBuffer, write: GPUBuffer) => {
-    const [g1, g2] = pipelines.createAdvectScalarBindGroups(fields, read, write);
-    dispatch(compute, pipelines.advectScalar, [pipelines.uniformBindGroup, g1, g2]);
-  };
-
-  advectScalar(fields.temperature.read, fields.temperature.write);
+  dispatch(compute, pipelines.project, [u, ...buildProject(pipelines, fields)]);
+  dispatch(compute, pipelines.advectScalars, [u, ...buildAdvectScalars(pipelines, fields)]);
   fields.temperature.swap();
-  advectScalar(fields.fuel.read, fields.fuel.write);
   fields.fuel.swap();
-  advectScalar(fields.smoke.read, fields.smoke.write);
   fields.smoke.swap();
-  advectScalar(fields.oxygen.read, fields.oxygen.write);
   fields.oxygen.swap();
 
-  // 8. Diffuse oxygen
-  const [diffG1, diffG2] = pipelines.createDiffuseO2BindGroups(fields);
-  dispatch(compute, pipelines.diffuseO2, [pipelines.uniformBindGroup, diffG1, diffG2]);
-  fields.oxygen.swap();
+  dispatch(compute, pipelines.boundaries, [u, buildBoundaries(pipelines, fields)]);
+  dispatch(compute, pipelines.combustion, [u, buildCombustion(pipelines, fields)]);
+  dispatch(compute, pipelines.dissipate, [u, buildDissipate(pipelines, fields)]);
 
-  // 9. Boundaries (open edges refill O2)
-  dispatch(compute, pipelines.boundaries, [
-    pipelines.uniformBindGroup,
-    pipelines.createBoundariesBindGroup(fields),
-  ]);
-
-  // 10. Combustion (writes divSource for next frame)
-  dispatch(compute, pipelines.combustion, [
-    pipelines.uniformBindGroup,
-    pipelines.createCombustionBindGroup(fields),
-  ]);
-
-  // 11. Dissipate
-  dispatch(compute, pipelines.dissipate, [
-    pipelines.uniformBindGroup,
-    pipelines.createDissipateBindGroup(fields),
-  ]);
-
-  // 12. Blit to display texture
-  const [blitG1, blitG2] = pipelines.createBlitBindGroups(fields);
-  dispatch(compute, pipelines.blit, [pipelines.uniformBindGroup, blitG1, blitG2]);
-
+  dispatch(compute, pipelines.blit, [u, ...buildBlit(pipelines, fields)]);
   compute.end();
 
-  // 13. Present to canvas
-  const presentBindGroup = pipelines.createPresentBindGroup(fields);
   const render = encoder.beginRenderPass({
     colorAttachments: [{
       view: canvasTextureView,
@@ -111,7 +70,7 @@ export function encodeSimFrame(
     }],
   });
   render.setPipeline(pipelines.present);
-  render.setBindGroup(0, presentBindGroup);
+  render.setBindGroup(0, pipelines.presentBindGroup);
   render.draw(3);
   render.end();
 

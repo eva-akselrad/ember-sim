@@ -13,11 +13,23 @@ html, body {
   color: #e0e0e0;
 }
 
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
 #gfx {
   display: block;
-  width: 100vw;
-  height: 100vh;
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
   cursor: crosshair;
+  touch-action: none;
+  pointer-events: auto;
+  outline: 1px solid rgba(255, 120, 40, 0.25);
 }
 
 #hud {
@@ -25,7 +37,7 @@ html, body {
   top: 12px;
   left: 12px;
   z-index: 10;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .hud-panel {
@@ -35,6 +47,7 @@ html, body {
   padding: 12px 14px;
   backdrop-filter: blur(8px);
   max-width: 520px;
+  pointer-events: auto;
 }
 
 .hud-title {
@@ -103,8 +116,18 @@ input[type="range"] {
   justify-content: center;
   background: #050508;
   color: #ff6644;
-  font-size: 1.2rem;
+  font-size: 1rem;
+  line-height: 1.6;
   padding: 2rem;
-  text-align: center;
+  text-align: left;
+  white-space: pre-wrap;
+  max-width: 640px;
+  margin: 0 auto;
   z-index: 100;
+  pointer-events: auto;
+}
+
+#error[hidden] {
+  display: none !important;
+  pointer-events: none;
 }

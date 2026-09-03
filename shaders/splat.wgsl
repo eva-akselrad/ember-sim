@@ -1,4 +1,4 @@
-const GRID: i32 = 512;
+const GRID: i32 = 256;
 
 struct Uniforms {
   dt: f32,
@@ -43,7 +43,7 @@ fn idx(x: i32, y: i32) -> u32 {
   return u32(yy * GRID + xx);
 }
 
-@compute @workgroup_size(8, 8)
+@compute @workgroup_size(16, 16)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
   let x = i32(gid.x);
   let y = i32(gid.y);
@@ -64,10 +64,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       let amount = u.brushStrength * falloff;
 
       if (mode == 1) {
-        fuel[i] += amount * 0.5;
+        fuel[i] += amount * 1.5;
       } else if (mode == 2) {
-        temperature[i] += amount * 3.0;
-        vel[i] += vec2f(u.mouseVelX, u.mouseVelY) * 0.1;
+        temperature[i] += amount * 6.0;
       } else if (mode == 3) {
         walls[i] = 1.0;
         vel[i] = vec2f(0.0);
@@ -86,6 +85,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         walls[i] = 0.0;
       } else if (mode == 6) {
         oxygen[i] = u.o2Ambient;
+      } else if (mode == 7) {
+        fuel[i] = max(fuel[i], amount * 1.2);
+        temperature[i] = max(temperature[i], amount * 5.0);
+        smoke[i] += amount * 0.4;
       }
     }
   }

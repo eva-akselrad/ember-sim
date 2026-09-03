@@ -32,8 +32,14 @@ struct Uniforms {
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(1) @binding(0) var<storage, read> walls: array<f32>;
 @group(1) @binding(1) var<storage, read> vel: array<vec2f>;
-@group(1) @binding(2) var<storage, read> scalarIn: array<f32>;
-@group(2) @binding(0) var<storage, read_write> scalarOut: array<f32>;
+@group(1) @binding(2) var<storage, read> tempIn: array<f32>;
+@group(1) @binding(3) var<storage, read> fuelIn: array<f32>;
+@group(1) @binding(4) var<storage, read> smokeIn: array<f32>;
+@group(1) @binding(5) var<storage, read> o2In: array<f32>;
+@group(2) @binding(0) var<storage, read_write> tempOut: array<f32>;
+@group(2) @binding(1) var<storage, read_write> fuelOut: array<f32>;
+@group(2) @binding(2) var<storage, read_write> smokeOut: array<f32>;
+@group(2) @binding(3) var<storage, read_write> o2Out: array<f32>;
 
 fn idx(x: i32, y: i32) -> u32 {
   let xx = clamp(x, 0, GRID - 1);
@@ -41,17 +47,17 @@ fn idx(x: i32, y: i32) -> u32 {
   return u32(yy * GRID + xx);
 }
 
-fn sample_scalar(pos: vec2f) -> f32 {
+fn sample_field(field: ptr<storage, array<f32>, read>, pos: vec2f) -> f32 {
   let clamped = clamp(pos, vec2f(0.5), vec2f(f32(GRID) - 0.5));
   let x0 = i32(floor(clamped.x - 0.5));
   let y0 = i32(floor(clamped.y - 0.5));
   let fx = fract(clamped.x - 0.5);
   let fy = fract(clamped.y - 0.5);
 
-  let v00 = scalarIn[idx(x0, y0)];
-  let v10 = scalarIn[idx(x0 + 1, y0)];
-  let v01 = scalarIn[idx(x0, y0 + 1)];
-  let v11 = scalarIn[idx(x0 + 1, y0 + 1)];
+  let v00 = (*field)[idx(x0, y0)];
+  let v10 = (*field)[idx(x0 + 1, y0)];
+  let v01 = (*field)[idx(x0, y0 + 1)];
+  let v11 = (*field)[idx(x0 + 1, y0 + 1)];
 
   let v0 = mix(v00, v10, fx);
   let v1 = mix(v01, v11, fx);
@@ -66,11 +72,18 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 
   let i = idx(x, y);
   if (walls[i] > 0.5) {
-    scalarOut[i] = 0.0;
+    tempOut[i] = 0.0;
+    fuelOut[i] = 0.0;
+    smokeOut[i] = 0.0;
+    o2Out[i] = 0.0;
     return;
   }
 
   let pos = vec2f(f32(x), f32(y)) + 0.5;
   let pos_back = pos - u.dt * vel[i];
-  scalarOut[i] = sample_scalar(pos_back);
+
+  tempOut[i] = sample_field(&tempIn, pos_back);
+  fuelOut[i] = sample_field(&fuelIn, pos_back);
+  smokeOut[i] = sample_field(&smokeIn, pos_back);
+  o2Out[i] = sample_field(&o2In, pos_back);
 }

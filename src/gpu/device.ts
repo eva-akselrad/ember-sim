@@ -4,23 +4,59 @@ export interface GpuContext {
   format: GPUTextureFormat;
 }
 
-export async function initGpu(canvas: HTMLCanvasElement): Promise<GpuContext> {
+export function webGpuSupportMessage(): string | null {
   if (!navigator.gpu) {
-    throw new Error('WebGPU required — please use Chrome or Edge');
+    const isFirefox = navigator.userAgent.includes('Firefox');
+    if (isFirefox) {
+      return [
+        'WebGPU is not available in this Firefox build.',
+        '',
+        'On Windows: update to Firefox 141 or newer (WebGPU ships enabled).',
+        'On macOS / Linux: open about:config and set dom.webgpu.enabled to true.',
+        'If your GPU is blocklisted, also set gfx.webgpu.ignore-blocklist to true.',
+        '',
+        'Then restart Firefox and reload this page.',
+      ].join('\n');
+    }
+    return [
+      'WebGPU is not available in this browser.',
+      '',
+      'Use a recent Chrome, Edge, or Firefox with WebGPU enabled.',
+      'Make sure hardware acceleration is on in browser settings.',
+    ].join('\n');
+  }
+  return null;
+}
+
+export async function initGpu(canvas: HTMLCanvasElement): Promise<GpuContext> {
+  const unsupported = webGpuSupportMessage();
+  if (unsupported) {
+    throw new Error(unsupported);
   }
 
-  const adapter = await navigator.gpu.requestAdapter();
+  const adapter = await navigator.gpu!.requestAdapter({
+    powerPreference: 'high-performance',
+  });
   if (!adapter) {
-    throw new Error('No WebGPU adapter found');
+    throw new Error(
+      'No WebGPU GPU adapter found. Try updating graphics drivers and enabling hardware acceleration in your browser settings.',
+    );
   }
 
-  const device = await adapter.requestDevice();
+  let device: GPUDevice;
+  try {
+    device = await adapter.requestDevice();
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`WebGPU device request failed: ${detail}`);
+  }
+
   const context = canvas.getContext('webgpu');
   if (!context) {
-    throw new Error('Failed to get WebGPU context');
+    throw new Error('Failed to get WebGPU canvas context');
   }
 
-  const format = navigator.gpu.getPreferredCanvasFormat();
+  const format = navigator.gpu!.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: 'opaque' });
 
   device.lost.then((info) => {

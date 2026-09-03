@@ -6,6 +6,7 @@ export interface PointerState {
   mouseVelX: number;
   mouseVelY: number;
   isDown: boolean;
+  onStrokeStart: (() => void) | null;
 }
 
 export function createPointerState(canvas: HTMLCanvasElement): PointerState {
@@ -15,6 +16,7 @@ export function createPointerState(canvas: HTMLCanvasElement): PointerState {
     mouseVelX: 0,
     mouseVelY: 0,
     isDown: false,
+    onStrokeStart: null,
   };
 
   let lastX = 0;
@@ -25,12 +27,13 @@ export function createPointerState(canvas: HTMLCanvasElement): PointerState {
     const nx = (clientX - rect.left) / rect.width;
     const ny = (clientY - rect.top) / rect.height;
     return {
-      x: Math.floor(nx * SIM.GRID),
-      y: Math.floor(ny * SIM.GRID),
+      x: nx * (SIM.GRID - 1),
+      y: ny * (SIM.GRID - 1),
     };
   };
 
   const onDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
     canvas.setPointerCapture(e.pointerId);
     state.isDown = true;
     const g = toGrid(e.clientX, e.clientY);
@@ -40,6 +43,8 @@ export function createPointerState(canvas: HTMLCanvasElement): PointerState {
     lastY = e.clientY;
     state.mouseVelX = 0;
     state.mouseVelY = 0;
+    state.onStrokeStart?.();
+    e.preventDefault();
   };
 
   const onMove = (e: PointerEvent) => {
@@ -49,14 +54,16 @@ export function createPointerState(canvas: HTMLCanvasElement): PointerState {
     if (state.isDown) {
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      state.mouseVelX = (dx / canvas.clientWidth) * 10;
-      state.mouseVelY = -(dy / canvas.clientHeight) * 10;
+      const scale = 2 / Math.max(canvas.clientWidth, canvas.clientHeight);
+      state.mouseVelX = Math.max(-2, Math.min(2, dx * scale));
+      state.mouseVelY = Math.max(-2, Math.min(2, -dy * scale));
     }
     lastX = e.clientX;
     lastY = e.clientY;
   };
 
-  const onUp = () => {
+  const onUp = (e: PointerEvent) => {
+    if (e.button !== 0) return;
     state.isDown = false;
     state.mouseVelX = 0;
     state.mouseVelY = 0;
@@ -66,7 +73,6 @@ export function createPointerState(canvas: HTMLCanvasElement): PointerState {
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
-  canvas.addEventListener('pointerleave', onUp);
 
   return state;
 }

@@ -1,31 +1,71 @@
 import './styles.css';
-import { initGpu } from './gpu/device';
-import { defaultUniforms } from './gpu/types';
-import { SimFields } from './sim/fields';
-import { SimPipelines } from './sim/pipelines';
-import { encodeSimFrame } from './sim/step';
-import { createPointerState } from './input/pointer';
-import { createHud } from './ui/hud';
+import { webGpuSupportMessage } from './gpu/device';
+
+function showError(message: string): void {
+  const errorEl = document.getElementById('error');
+  if (errorEl) {
+    errorEl.hidden = false;
+    errorEl.textContent = message;
+  }
+  console.error(message);
+}
 
 async function main(): Promise<void> {
-  const canvas = document.getElementById('gfx') as HTMLCanvasElement;
-  const errorEl = document.getElementById('error')!;
+  const canvas = document.getElementById('gfx') as HTMLCanvasElement | null;
+  if (!canvas) {
+    showError('Missing canvas element.');
+    return;
+  }
+
+  const unsupported = webGpuSupportMessage();
+  if (unsupported) {
+    showError(unsupported);
+    return;
+  }
+
+  const { initGpu } = await import('./gpu/device');
+  const { defaultUniforms } = await import('./gpu/types');
+  const { SimFields } = await import('./sim/fields');
+  const { SimPipelines } = await import('./sim/pipelines');
+  const { encodeSimFrame } = await import('./sim/step');
+  const { createPointerState } = await import('./input/pointer');
+  const { createHud } = await import('./ui/hud');
+  const { applyCampfirePreset } = await import('./sim/preset');
+  const { createCpuState, stampBrush } = await import('./sim/brushStamp');
 
   try {
     const gpu = await initGpu(canvas);
-    const fields = new SimFields(gpu.device);
+    const cpu = createCpuState();
+    const fields = new SimFields(gpu.device, cpu);
+    applyCampfirePreset(gpu.device, fields);
     const pipelines = new SimPipelines(gpu.device, gpu.format);
+    pipelines.setPresentBindGroup(fields);
     const pointer = createPointerState(canvas);
     const uniforms = defaultUniforms();
 
+    let strokeReady = true;
+    let syncGeneration = 0;
+
+    pointer.onStrokeStart = () => {
+      const gen = ++syncGeneration;
+      strokeReady = false;
+      fields.syncFromGpu(gpu.device).then(() => {
+        if (gen === syncGeneration) strokeReady = true;
+      });
+    };
+
     const hud = createHud(() => {}, () => {
-      fields.clear(gpu.device);
+      applyCampfirePreset(gpu.device, fields);
     });
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
+      const cssSize = Math.min(window.innerWidth, window.innerHeight);
+      canvas.style.width = `${cssSize}px`;
+      canvas.style.height = `${cssSize}px`;
+      const size = Math.floor(cssSize * dpr);
+      canvas.width = size;
+      canvas.height = size;
       gpu.context.configure({ device: gpu.device, format: gpu.format, alphaMode: 'opaque' });
     };
     window.addEventListener('resize', resize);
@@ -40,7 +80,21 @@ async function main(): Promise<void> {
       uniforms.brushY = pointer.gridY;
       uniforms.mouseVelX = pointer.mouseVelX;
       uniforms.mouseVelY = pointer.mouseVelY;
-      uniforms.brushActive = pointer.isDown ? 1 : 0;
+      uniforms.brushActive = 0;
+
+      const painting = pointer.isDown;
+
+      if (painting && strokeReady) {
+        stampBrush(
+          fields.cpu,
+          pointer.gridX,
+          pointer.gridY,
+          hud.brushRadius,
+          hud.brushMode,
+          hud.brushStrength,
+        );
+        fields.uploadScalars(gpu.device);
+      }
 
       if (!hud.paused) {
         const texture = gpu.context.getCurrentTexture();
@@ -52,10 +106,10 @@ async function main(): Promise<void> {
 
     requestAnimationFrame(frame);
   } catch (err) {
-    errorEl.hidden = false;
-    errorEl.textContent = err instanceof Error ? err.message : String(err);
-    console.error(err);
+    showError(err instanceof Error ? err.message : String(err));
   }
 }
 
-main();
+main().catch((err) => {
+  showError(err instanceof Error ? err.message : String(err));
+});
