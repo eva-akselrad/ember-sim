@@ -48,7 +48,8 @@ export function createHud(onReset: () => void): HudState {
 
   hud.innerHTML = `
     <div class="hud-panel">
-      <div class="hud-title">ember-sim</div>
+      <div class="hud-title">ember-sim <span class="wip-badge">WIP</span></div>
+      <div class="hud-wip">Heavily experimental — physics &amp; visuals still in flux</div>
       <div class="hud-help">Wood ~${formatBurnDuration(SIM.FUEL_DENSITY / SIM.WOOD_BURN_RATE)} · Coal ~${formatBurnDuration(SIM.FUEL_DENSITY / SIM.COAL_BURN_RATE)} per cell</div>
       <div class="hud-row">
         <span class="label">Brush</span>

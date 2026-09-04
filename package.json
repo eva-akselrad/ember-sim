@@ -2,6 +2,7 @@
   "name": "ember-sim",
   "private": true,
   "version": "0.3.0",
+  "description": "Heavily WIP browser fire fluid sandbox (Stam fluids + combustion). Experimental — not production-ready.",
   "type": "module",
   "scripts": {
     "dev": "vite",

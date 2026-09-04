@@ -1,8 +1,20 @@
 # ember-sim
 
+> **⚠️ Heavily WIP** — experimental playground, not a finished sim. Physics, visuals, and backdraft are still being tuned; expect bugs, jank, and breaking changes.
+
 Browser **fire fluid sandbox** — Jos Stam stable fluids + combustion, inspired by [Escape Motions Fire Fluid 3](https://www.escapemotions.com/experiments/fluid_fire_3/index.php) and [*Real-Time Fluid Dynamics for Games*](https://www.dgp.toronto.edu/people/stam/reality/Research/pdf/GDC03.pdf).
 
 TypeScript + Vite + **Canvas 2D** (CPU solver, 128×128 grid). No WebGPU required.
+
+## Known rough edges (WIP)
+
+- O₂ starvation, embers, and backdraft are **approximate** — reignition timing and drama still need work
+- CPU 128×128 grid only; no WebGPU path in this branch
+- Solid fuel / air / smoke interaction is simplistic (no chemistry, no radiative heat)
+- Visuals can look wrong at fuel–air boundaries (brown smear, frozen-looking flame zones)
+- Parameters are hand-tuned and may break with small code changes
+
+Contributions and issue reports welcome; API and behavior **will** change.
 
 ## Run
 
@@ -79,7 +91,7 @@ npm run preview  # serve production build
 
 ## History
 
-v0.3 — Rebuilt on Stam CPU solver (replaced experimental WebGPU path). Solid fuel, fuel types, O₂ starvation, embers, backdraft, fullscreen canvas.
+v0.3 — **Heavily WIP** rebuild on Stam CPU solver (replaced experimental WebGPU path). Solid fuel, fuel types, O₂ starvation, embers, backdraft, fullscreen canvas. Not production-ready.
 
 ## License
 

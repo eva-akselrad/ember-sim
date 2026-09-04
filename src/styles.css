@@ -83,6 +83,26 @@ body {
   margin-bottom: 4px;
 }
 
+.wip-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+  color: #1a1008;
+  background: #ffb347;
+  border-radius: 4px;
+}
+
+.hud-wip {
+  font-size: 0.68rem;
+  color: #c9a06a;
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
 .hud-help {
   font-size: 0.72rem;
   color: #888;
