@@ -3,14 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ember-sim</title>
+    <title>ember-sim — fire fluid sandbox</title>
   </head>
   <body>
     <div id="stage">
-      <canvas id="gfx"></canvas>
+      <div id="canvas-wrap">
+        <canvas id="gfx"></canvas>
+        <div id="brush-ring" hidden></div>
+      </div>
     </div>
     <div id="hud"></div>
-    <div id="error" hidden></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
